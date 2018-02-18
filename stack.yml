@@ -1,0 +1,70 @@
+version: '3.3'
+
+services:
+  consul:
+    image: consul:latest
+    deploy:
+      mode: replicated
+      replicas: 1
+    networks:
+      - "test"
+    ports:
+      - "8500:8500"
+      - "8600:8600"
+
+  cadvisor:
+    image: google/cadvisor:v0.28.3
+    deploy:
+      mode: global
+      labels: 
+        - "prometheus.metrics.cadvisor=8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - "test"
+    ports:
+      - "8080:8080"
+
+  prometheus:
+    image: prom/prometheus:v2.2.0-rc.0
+    ports:
+      - "9090:9090"
+    networks:
+      - "test"
+    volumes:
+      - type: bind
+        source: prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        - "prometheus.metrics.prometheus=9090"
+
+  node-exporter:
+    hostname: node-exporter
+    image: prom/node-exporter:v0.15.2
+    deploy:
+      mode: global
+      labels:
+        - "prometheus.metrics.node_exporter=9100"
+    networks:
+      - "test"
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc
+      - /sys:/host/sys
+      - /:/rootfs
+    command: --path.procfs /host/proc --path.sysfs /host/sys --collector.filesystem.ignored-mount-points "^/(rootfs/)?(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/plugins|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns)($$|/)"
+
+networks:
+  test:
+    driver: overlay
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.100.0/24
