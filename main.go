@@ -84,7 +84,7 @@ func createCatalogRegistration(name, label, taskID, ip string, p int) consulapi.
 	// ccr.ID = s.Spec.Name + ":" + string(p)
 	ccr.Node = "prometheus"
 	ccr.Address = "127.0.0.1"
-	ccr.TaggedAddresses = map[string]string{"wan": "121212", "lan": "1212121"}
+	ccr.TaggedAddresses = map[string]string{"wan": ip, "lan": ip}
 	ccr.Datacenter = "dc1"
 	ccr.Service = &cas
 	log.Debug(ccr)
