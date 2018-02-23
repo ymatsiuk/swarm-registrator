@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -41,24 +42,27 @@ func init() {
 func main() {
 	client, _ := consulapi.NewClient(consulapi.DefaultConfig())
 	catalog := client.Catalog()
-	tc := tasks()
-	for t := range tc {
-		if t.Status.State == "running" {
-			s := service(t.ServiceID)
-			for _, v := range t.NetworksAttachments {
-				if v.Network.Spec.Name != "ingress" {
-					log.Debug("v is: ", v.Addresses, v.Network.Spec.Name)
-					log.Info("running task ", t.ID, " belongs to service ", s.Spec.Name, " with labels ", s.Spec.Labels)
-					m := convertPort(s.Spec.Labels)
-					ip := strings.Split(v.Addresses[0], "/")[0]
-					//
-					for l, p := range m {
-						ccr := createCatalogRegistration(s.Spec.Name, l, t.ID, ip, p)
-						registerInConsul(ccr, catalog)
+	for {
+		tc := tasks()
+		for t := range tc {
+			if t.Status.State == "running" {
+				s := service(t.ServiceID)
+				for _, v := range t.NetworksAttachments {
+					if v.Network.Spec.Name != "ingress" {
+						log.Debug("v is: ", v.Addresses, v.Network.Spec.Name)
+						log.Info("running task ", t.ID, " belongs to service ", s.Spec.Name, " with labels ", s.Spec.Labels)
+						m := convertPort(s.Spec.Labels)
+						ip := strings.Split(v.Addresses[0], "/")[0]
+						//
+						for l, p := range m {
+							ccr := createCatalogRegistration(s.Spec.Name, l, t.ID, ip, p)
+							registerInConsul(ccr, catalog)
+						}
 					}
 				}
 			}
 		}
+		time.Sleep(time.Minute * 1)
 	}
 }
 
@@ -82,7 +86,7 @@ func createCatalogRegistration(name, label, taskID, ip string, p int) consulapi.
 	cas.Address = ip
 
 	// ccr.ID = s.Spec.Name + ":" + string(p)
-	ccr.Node = "prometheus"
+	ccr.Node = "monitoring"
 	ccr.Address = "127.0.0.1"
 	ccr.TaggedAddresses = map[string]string{"wan": ip, "lan": ip}
 	ccr.Datacenter = "dc1"
