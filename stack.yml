@@ -61,18 +61,18 @@ services:
       - /:/rootfs
     command: --path.procfs /host/proc --path.sysfs /host/sys --collector.filesystem.ignored-mount-points "^/(rootfs/)?(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/plugins|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns)($$|/)"
 
-     swarm-registrator:
-       hostname: swarm-registrator
-       image: swarm-registrator:latest
-       env:
-        - LOG_LEVEL=debug
-        - LOG_FORMAT=json
-        - CONSUL_HTTP_ADDRESS=172.17.0.1:8500
-       deploy:
-         mode: replicated
-         replicas: 1
-       networks:
-         - "test"
+  swarm-registrator:
+    hostname: swarm-registrator
+    image: swarm-registrator:latest
+    environment:
+      - "LOG_LEVEL=debug"
+      - "LOG_FORMAT=json"
+      - "CONSUL_HTTP_ADDRESS=172.17.0.1:8500"
+    deploy:
+      mode: replicated
+      replicas: 1
+    networks:
+      - "test"
 
 networks:
   test:
